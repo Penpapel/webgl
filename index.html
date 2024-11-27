@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ripple Effect with Navigable Spheres</title>
+    <title>Ripple Effect with Reflective Spheres</title>
     <style>
         body {
             margin: 0;
@@ -43,21 +43,39 @@
         pointLight2.position.set(-20, -20, -20);
         scene.add(pointLight2);
 
-        // Sphere Array
-        const sphereGeometry = new THREE.SphereGeometry(0.2, 16, 16); // Smaller spheres for better visibility
-        const sphereMaterial = new THREE.MeshStandardMaterial({
-            color: 0x3377ff,
-            metalness: 0.8,
-            roughness: 0.2,
-        });
+        // Environment Map for Reflective Material
+        const cubeTextureLoader = new THREE.CubeTextureLoader();
+        const envMap = cubeTextureLoader.load([
+            './textures/posx.jpg',
+            './textures/negx.jpg',
+            './textures/posy.jpg',
+            './textures/negy.jpg',
+            './textures/posz.jpg',
+            './textures/negz.jpg',
+        ]);
 
+        // Sphere Array
+        const sphereGeometry = new THREE.SphereGeometry(0.2, 16, 16); // Smaller spheres
         const spheres = [];
-        const gridSize = 10; // Adjusted for better performance and visibility
+        const gridSize = 10;
         const spacing = 1.5;
 
         for (let x = -gridSize; x <= gridSize; x++) {
             for (let y = -gridSize; y <= gridSize; y++) {
                 for (let z = -gridSize; z <= gridSize; z++) {
+                    // Randomized gradient color based on position
+                    const hue = (x + gridSize) / (2 * gridSize);
+                    const saturation = (y + gridSize) / (2 * gridSize);
+                    const lightness = (z + gridSize) / (2 * gridSize);
+
+                    const sphereMaterial = new THREE.MeshStandardMaterial({
+                        color: new THREE.Color(`hsl(${hue * 360}, ${saturation * 100}%, ${lightness * 50}%)`),
+                        metalness: 1.0,
+                        roughness: 0.2,
+                        envMap: envMap,
+                        envMapIntensity: 1.0,
+                    });
+
                     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
                     sphere.position.set(x * spacing, y * spacing, z * spacing);
                     scene.add(sphere);

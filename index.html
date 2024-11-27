@@ -29,7 +29,9 @@
             type: THREE.UnsignedByteType,
         });
 
+        // Motion blur overlay scene and camera
         const blurScene = new THREE.Scene();
+        const blurCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); // Orthographic camera for 2D plane
         const blurMaterial = new THREE.MeshBasicMaterial({
             map: renderTarget.texture,
             transparent: true,
@@ -38,7 +40,7 @@
         const blurPlane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), blurMaterial);
         blurScene.add(blurPlane);
 
-        // Camera
+        // Main Camera
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 0, 50);
 
@@ -93,7 +95,7 @@
                     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
 
                     // Set unique orbit parameters
-                    const distance = THREE.MathUtils.randFloat(1, 50); // Random distance
+                    const distance = THREE.MathUtils.randFloat(1, 25); // Random distance
                     const speed = THREE.MathUtils.randFloat(0.25, 0.75); // Adjusted speed range
                     const axis = new THREE.Vector3(
                         THREE.MathUtils.randFloat(-1, 1),
@@ -137,9 +139,13 @@
 
             // Render motion blur overlay
             renderer.setRenderTarget(null);
-            renderer.render(blurScene, camera);
+            renderer.clearColor();
+            renderer.render(blurScene, blurCamera);
 
-            // Update controls and render the scene
+            // Render main scene to screen
+            renderer.render(scene, camera);
+
+            // Update controls
             controls.update();
         }
 

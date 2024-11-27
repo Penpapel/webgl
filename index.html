@@ -9,9 +9,35 @@
             margin: 0;
             overflow: hidden;
         }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
+    <div id="ui">
+        <label for="speed">Ripple Speed</label>
+        <input id="speed" type="range" min="1" max="10" step="0.1" value="4">
+        <label for="amplitude">Ripple Amplitude</label>
+        <input id="amplitude" type="range" min="0.05" max="0.5" step="0.01" value="0.1">
+        <label for="pattern">Ripple Pattern</label>
+        <select id="pattern">
+            <option value="sin">Sine Wave</option>
+            <option value="cos">Cosine Wave</option>
+            <option value="tan">Tangent Wave</option>
+        </select>
+    </div>
+
     <script type="module">
         import * as THREE from './scripts/three.module.js';
         import { OrbitControls } from './scripts/OrbitControls.js';
@@ -19,13 +45,14 @@
         // Scene and Renderer
         const scene = new THREE.Scene();
         const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.shadowMap.enabled = true; // Enable shadows
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
         // Camera
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1, 5);
+        camera.position.set(0, 2, 6);
 
         // OrbitControls
         const controls = new OrbitControls(camera, renderer.domElement);
@@ -37,7 +64,15 @@
 
         const pointLight = new THREE.PointLight(0xffffff, 1);
         pointLight.position.set(5, 5, 5);
+        pointLight.castShadow = true;
+        pointLight.shadow.mapSize.width = 1024;
+        pointLight.shadow.mapSize.height = 1024;
         scene.add(pointLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(-5, 5, -5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
 
         // Environment Map (Reflection)
         const cubeTextureLoader = new THREE.CubeTextureLoader();
@@ -62,15 +97,31 @@
         });
 
         const torus = new THREE.Mesh(geometry, material);
+        torus.castShadow = true; // Enable shadows
+        torus.receiveShadow = true;
         scene.add(torus);
 
         // Animation Variables
         const clock = new THREE.Clock();
-        const rippleSpeed = 4.0; // Speed of ripple
-        const rippleAmplitude = 0.1; // Height of ripple
+        let rippleSpeed = 4.0; // Default speed
+        let rippleAmplitude = 0.1; // Default amplitude
+        let ripplePattern = "sin"; // Default pattern
 
         // Store Original Positions of Vertices
         const originalVertices = geometry.attributes.position.array.slice();
+
+        // UI Controls
+        document.getElementById("speed").addEventListener("input", (e) => {
+            rippleSpeed = parseFloat(e.target.value);
+        });
+
+        document.getElementById("amplitude").addEventListener("input", (e) => {
+            rippleAmplitude = parseFloat(e.target.value);
+        });
+
+        document.getElementById("pattern").addEventListener("change", (e) => {
+            ripplePattern = e.target.value;
+        });
 
         // Animation Loop
         function animate() {
@@ -85,10 +136,18 @@
                 const y = originalVertices[i * 3 + 1];
                 const z = originalVertices[i * 3 + 2];
 
-                // Calculate ripple effect based on distance and time
+                // Ripple Function
                 const distance = Math.sqrt(x * x + z * z);
-                const offset = Math.sin(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+                let offset;
+                if (ripplePattern === "sin") {
+                    offset = Math.sin(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+                } else if (ripplePattern === "cos") {
+                    offset = Math.cos(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+                } else if (ripplePattern === "tan") {
+                    offset = Math.tan(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+                }
 
+                // Apply Ripple Offset
                 position.setXYZ(i, x, y + offset, z);
             }
 

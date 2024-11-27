@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torus with Animation and Bloom</title>
+    <title>Animated Torus</title>
     <style>
         body {
             margin: 0;
@@ -15,9 +15,6 @@
     <script type="module">
         import * as THREE from './scripts/three.module.js';
         import { OrbitControls } from './scripts/OrbitControls.js';
-        import { EffectComposer } from './scripts/EffectComposer.js';
-        import { RenderPass } from './scripts/RenderPass.js';
-        import { UnrealBloomPass } from './scripts/UnrealBloomPass.js';
 
         // Scene and Renderer
         const scene = new THREE.Scene();
@@ -67,23 +64,10 @@
         const torus = new THREE.Mesh(geometry, material);
         scene.add(torus);
 
-        // Bloom Effect
-        const composer = new EffectComposer(renderer);
-        const renderPass = new RenderPass(scene, camera);
-        composer.addPass(renderPass);
-
-        const bloomPass = new UnrealBloomPass(
-            new THREE.Vector2(window.innerWidth, window.innerHeight),
-            1.5, // Strength
-            0.4, // Radius
-            0.85 // Threshold
-        );
-        composer.addPass(bloomPass);
-
         // Animation Variables
-        let clock = new THREE.Clock();
-        let pulseSpeed = 2.0; // Speed of pulsing
-        let colorSpeed = 1.0; // Speed of color change
+        const clock = new THREE.Clock();
+        const pulseSpeed = 2.0; // Speed of pulsing
+        const colorSpeed = 1.0; // Speed of color change
 
         // Animation Loop
         function animate() {
@@ -98,7 +82,7 @@
             material.color.setHSL(hue, 0.8, 0.5);
 
             controls.update();
-            composer.render();
+            renderer.render(scene, camera);
         }
 
         animate();
@@ -108,7 +92,6 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
-            composer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>

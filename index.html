@@ -25,26 +25,38 @@
 
         // Camera
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 0, 30);
+        camera.position.set(0, 0, 50); // Adjusted camera position for better visibility
 
         // OrbitControls for 3D Navigation
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Stronger ambient light
         scene.add(ambientLight);
 
-        const pointLight1 = new THREE.PointLight(0xffffff, 1);
-        pointLight1.position.set(20, 20, 20);
+        const pointLight1 = new THREE.PointLight(0xffffff, 1.5); // Brighter point lights
+        pointLight1.position.set(50, 50, 50);
         scene.add(pointLight1);
 
-        const pointLight2 = new THREE.PointLight(0xffffff, 1);
-        pointLight2.position.set(-20, -20, -20);
+        const pointLight2 = new THREE.PointLight(0xffffff, 1.5);
+        pointLight2.position.set(-50, -50, -50);
         scene.add(pointLight2);
 
+        // Environment Map for Reflective Material
+        const cubeTextureLoader = new THREE.CubeTextureLoader();
+        const envMap = cubeTextureLoader.load([
+            './textures/posx.jpg',
+            './textures/negx.jpg',
+            './textures/posy.jpg',
+            './textures/negy.jpg',
+            './textures/posz.jpg',
+            './textures/negz.jpg',
+        ]);
+        scene.background = envMap; // Set the environment map as the scene background
+
         // Sphere Array
-        const sphereGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+        const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32); // Slightly larger spheres for visibility
         const spheres = [];
         const orbitParams = []; // Store unique orbit parameters for each sphere
         const gridSize = 10;
@@ -59,15 +71,17 @@
 
                     const sphereMaterial = new THREE.MeshStandardMaterial({
                         color: new THREE.Color(`hsl(${hue * 360}, ${saturation * 100}%, ${lightness * 50}%)`),
-                        metalness: 1.0,
-                        roughness: 0.2,
+                        metalness: 0.9, // Reduced metalness for better color visibility
+                        roughness: 0.4, // Increased roughness for softer reflections
+                        envMap: envMap,
+                        envMapIntensity: 1.0,
                     });
 
                     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
 
                     // Set unique orbit parameters
-                    const distance = THREE.MathUtils.randFloat(2 * 0.2, 20 * 0.2); // 2 to 20 times sphere diameter
-                    const speed = THREE.MathUtils.randFloat(0.5, 2.0); // Speed range
+                    const distance = THREE.MathUtils.randFloat(1, 10); // Random distance
+                    const speed = THREE.MathUtils.randFloat(0.5, 2.0); // Random speed
                     const axis = new THREE.Vector3(
                         THREE.MathUtils.randFloat(-1, 1),
                         THREE.MathUtils.randFloat(-1, 1),
@@ -75,9 +89,9 @@
                     ).normalize(); // Random normalized axis
 
                     const orbitCenter = new THREE.Vector3(
-                        x * 1.5, // Grid spacing
-                        y * 1.5,
-                        z * 1.5
+                        x * 2.5, // Grid spacing
+                        y * 2.5,
+                        z * 2.5
                     );
 
                     orbitParams.push({ sphere, orbitCenter, distance, speed, axis });

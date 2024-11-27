@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torus with Metallic Material</title>
+    <title>Torus with Animation and Bloom</title>
     <style>
         body {
             margin: 0;
@@ -15,6 +15,9 @@
     <script type="module">
         import * as THREE from './scripts/three.module.js';
         import { OrbitControls } from './scripts/OrbitControls.js';
+        import { EffectComposer } from './scripts/EffectComposer.js';
+        import { RenderPass } from './scripts/RenderPass.js';
+        import { UnrealBloomPass } from './scripts/UnrealBloomPass.js';
 
         // Scene and Renderer
         const scene = new THREE.Scene();
@@ -55,22 +58,47 @@
         const geometry = new THREE.TorusGeometry(1, 0.4, 64, 128);
         const material = new THREE.MeshStandardMaterial({
             color: 0xaaaaaa,
-            metalness: 1.0, // High reflectivity
-            roughness: 0.2, // Slight surface detail
+            metalness: 1.0,
+            roughness: 0.2,
             envMap: envMap,
-            envMapIntensity: 1.0, // Strength of reflection
+            envMapIntensity: 1.0,
         });
 
         const torus = new THREE.Mesh(geometry, material);
         scene.add(torus);
 
+        // Bloom Effect
+        const composer = new EffectComposer(renderer);
+        const renderPass = new RenderPass(scene, camera);
+        composer.addPass(renderPass);
+
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            1.5, // Strength
+            0.4, // Radius
+            0.85 // Threshold
+        );
+        composer.addPass(bloomPass);
+
+        // Animation Variables
+        let clock = new THREE.Clock();
+        let pulseSpeed = 2.0; // Speed of pulsing
+        let colorSpeed = 1.0; // Speed of color change
+
         // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
-            torus.rotation.x += 0.01; // Rotate the torus
-            torus.rotation.y += 0.01;
+
+            // Pulsing Animation
+            const scale = Math.sin(clock.getElapsedTime() * pulseSpeed) * 0.3 + 1.2;
+            torus.scale.set(scale, scale, scale);
+
+            // Color Change Animation
+            const hue = (Math.sin(clock.getElapsedTime() * colorSpeed) + 1) / 2;
+            material.color.setHSL(hue, 0.8, 0.5);
+
             controls.update();
-            renderer.render(scene, camera);
+            composer.render();
         }
 
         animate();
@@ -80,6 +108,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
+            composer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>

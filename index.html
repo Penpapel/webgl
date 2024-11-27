@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Endless Ripple Spheres</title>
+    <title>Ripple Effect with Navigable Spheres</title>
     <style>
         body {
             margin: 0;
@@ -14,6 +14,7 @@
 <body>
     <script type="module">
         import * as THREE from './scripts/three.module.js';
+        import { OrbitControls } from './scripts/OrbitControls.js';
 
         // Scene and Renderer
         const scene = new THREE.Scene();
@@ -24,22 +25,26 @@
 
         // Camera
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 0, 15);
+        camera.position.set(0, 0, 30);
+
+        // OrbitControls for 3D Navigation
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
 
         const pointLight1 = new THREE.PointLight(0xffffff, 1);
-        pointLight1.position.set(10, 10, 10);
+        pointLight1.position.set(20, 20, 20);
         scene.add(pointLight1);
 
         const pointLight2 = new THREE.PointLight(0xffffff, 1);
-        pointLight2.position.set(-10, -10, -10);
+        pointLight2.position.set(-20, -20, -20);
         scene.add(pointLight2);
 
         // Sphere Array
-        const sphereGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+        const sphereGeometry = new THREE.SphereGeometry(0.2, 16, 16); // Smaller spheres for better visibility
         const sphereMaterial = new THREE.MeshStandardMaterial({
             color: 0x3377ff,
             metalness: 0.8,
@@ -47,8 +52,8 @@
         });
 
         const spheres = [];
-        const gridSize = 20;
-        const spacing = 2.0;
+        const gridSize = 10; // Adjusted for better performance and visibility
+        const spacing = 1.5;
 
         for (let x = -gridSize; x <= gridSize; x++) {
             for (let y = -gridSize; y <= gridSize; y++) {
@@ -64,7 +69,7 @@
         // Animation Variables
         const clock = new THREE.Clock();
         const rippleSpeed = 4.0; // Ripple speed
-        const rippleAmplitude = 1.5; // Ripple amplitude
+        const rippleAmplitude = 1.0; // Ripple amplitude
 
         // Animation Loop
         function animate() {
@@ -81,7 +86,8 @@
                 sphere.position.z += offset * 0.01;
             });
 
-            // Render Scene
+            // Update controls and render the scene
+            controls.update();
             renderer.render(scene, camera);
         }
 

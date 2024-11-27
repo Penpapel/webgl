@@ -16,9 +16,9 @@
 </head>
 <body>
     <script type="module">
-        // Import Three.js and OrbitControls as ES Modules
-        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
-        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/controls/OrbitControls.js';
+        // Import Three.js and OrbitControls from your repository's scripts folder
+        import * as THREE from './scripts/three.module.js';
+        import { OrbitControls } from './scripts/OrbitControls.js';
 
         // Scene setup
         const scene = new THREE.Scene();
@@ -35,15 +35,15 @@
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        // Environment Map (Skybox)
+        // Environment Map (Skybox) from textures folder
         const cubeTextureLoader = new THREE.CubeTextureLoader();
         const envMap = cubeTextureLoader.load([
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/cube/Bridge2/posx.jpg',
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/cube/Bridge2/negx.jpg',
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/cube/Bridge2/posy.jpg',
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/cube/Bridge2/negy.jpg',
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/cube/Bridge2/posz.jpg',
-            'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/cube/Bridge2/negz.jpg',
+            './textures/posx.jpg',
+            './textures/negx.jpg',
+            './textures/posy.jpg',
+            './textures/negy.jpg',
+            './textures/posz.jpg',
+            './textures/negz.jpg',
         ]);
         scene.environment = envMap;
 
@@ -55,11 +55,6 @@
             envMap: envMap,
             envMapIntensity: 1.0,
         });
-
-        // Add normal map for surface detail
-        const textureLoader = new THREE.TextureLoader();
-        const normalMap = textureLoader.load('https://threejs.org/examples/textures/water/Water_1_M_Normal.jpg');
-        material.normalMap = normalMap;
 
         // Geometry
         const geometry = new THREE.TorusKnotGeometry(1, 0.4, 128, 64);

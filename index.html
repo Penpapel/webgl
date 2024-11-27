@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGL Project</title>
+    <title>Torus with Metallic Material</title>
     <style>
         body {
             margin: 0;
@@ -16,30 +16,71 @@
         import * as THREE from './scripts/three.module.js';
         import { OrbitControls } from './scripts/OrbitControls.js';
 
+        // Scene and Renderer
         const scene = new THREE.Scene();
-        const renderer = new THREE.WebGLRenderer();
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
+        // Camera
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 5;
+        camera.position.set(0, 1, 5);
 
+        // OrbitControls
         const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
 
-        const geometry = new THREE.BoxGeometry();
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        const cube = new THREE.Mesh(geometry, material);
-        scene.add(cube);
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
 
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
+
+        // Environment Map (Reflection)
+        const cubeTextureLoader = new THREE.CubeTextureLoader();
+        const envMap = cubeTextureLoader.load([
+            './textures/posx.jpg',
+            './textures/negx.jpg',
+            './textures/posy.jpg',
+            './textures/negy.jpg',
+            './textures/posz.jpg',
+            './textures/negz.jpg',
+        ]);
+        scene.environment = envMap;
+
+        // Torus Geometry and Metallic Material
+        const geometry = new THREE.TorusGeometry(1, 0.4, 64, 128);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0xaaaaaa,
+            metalness: 1.0, // High reflectivity
+            roughness: 0.2, // Slight surface detail
+            envMap: envMap,
+            envMapIntensity: 1.0, // Strength of reflection
+        });
+
+        const torus = new THREE.Mesh(geometry, material);
+        scene.add(torus);
+
+        // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
+            torus.rotation.x += 0.01; // Rotate the torus
+            torus.rotation.y += 0.01;
             controls.update();
             renderer.render(scene, camera);
         }
 
         animate();
+
+        // Resize Handling
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
     </script>
 </body>
 </html>

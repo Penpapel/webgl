@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ripple and Dimple Effect Torus</title>
+    <title>Geometric Ripple Effect</title>
     <style>
         body {
             margin: 0;
@@ -30,12 +30,17 @@
 </head>
 <body>
     <div id="ui">
+        <label for="geometry">Geometry</label>
+        <select id="geometry">
+            <option value="torus">Torus</option>
+            <option value="cube">Cube</option>
+            <option value="sphere">Sphere</option>
+            <option value="lattice">Tetrahedral Lattice</option>
+        </select>
         <label for="speed">Ripple Speed</label>
         <input id="speed" type="range" min="1" max="10" step="0.1" value="4">
         <label for="amplitude">Ripple Amplitude</label>
         <input id="amplitude" type="range" min="0.05" max="0.5" step="0.01" value="0.1">
-        <label for="dimple">Dimple Depth</label>
-        <input id="dimple" type="range" min="0" max="0.5" step="0.01" value="0.1">
         <label for="reflection">Reflection Intensity</label>
         <input id="reflection" type="range" min="0" max="2" step="0.1" value="1">
         <label for="pattern">Ripple Pattern</label>
@@ -58,6 +63,18 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
+
+        // Motion Blur Setup
+        const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
+            format: THREE.RGBAFormat,
+            type: THREE.UnsignedByteType,
+        });
+        const composer = new THREE.Scene();
+        const motionBlurPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(2, 2),
+            new THREE.MeshBasicMaterial({ map: renderTarget.texture, opacity: 0.8, transparent: true })
+        );
+        composer.add(motionBlurPlane);
 
         // Camera
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -97,8 +114,8 @@
         ]);
         scene.environment = envMap;
 
-        // Torus Geometry and Metallic Material
-        const geometry = new THREE.TorusGeometry(1, 0.4, 64, 128);
+        // Geometry Variables
+        let geometry = new THREE.TorusGeometry(1, 0.4, 64, 128);
         const material = new THREE.MeshStandardMaterial({
             color: 0xaaaaaa,
             metalness: 1.0,
@@ -106,34 +123,49 @@
             envMap: envMap,
             envMapIntensity: 1.0,
         });
-
-        const torus = new THREE.Mesh(geometry, material);
-        torus.castShadow = true;
-        torus.receiveShadow = true;
-        scene.add(torus);
+        let mesh = new THREE.Mesh(geometry, material);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
 
         // Animation Variables
         const clock = new THREE.Clock();
         let rippleSpeed = 4.0;
         let rippleAmplitude = 0.1;
-        let dimpleDepth = 0.1;
         let ripplePattern = "sin";
         let reflectionIntensity = 1.0;
 
-        // Store Original Positions of Vertices
-        const originalVertices = geometry.attributes.position.array.slice();
-
         // UI Controls
+        document.getElementById("geometry").addEventListener("change", (e) => {
+            scene.remove(mesh);
+            const value = e.target.value;
+
+            switch (value) {
+                case "torus":
+                    geometry = new THREE.TorusGeometry(1, 0.4, 64, 128);
+                    break;
+                case "cube":
+                    geometry = new THREE.BoxGeometry(2, 2, 2, 32, 32, 32);
+                    break;
+                case "sphere":
+                    geometry = new THREE.SphereGeometry(1, 64, 64);
+                    break;
+                case "lattice":
+                    geometry = new THREE.IcosahedronGeometry(1, 1);
+                    break;
+            }
+            mesh = new THREE.Mesh(geometry, material);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+        });
+
         document.getElementById("speed").addEventListener("input", (e) => {
             rippleSpeed = parseFloat(e.target.value);
         });
 
         document.getElementById("amplitude").addEventListener("input", (e) => {
             rippleAmplitude = parseFloat(e.target.value);
-        });
-
-        document.getElementById("dimple").addEventListener("input", (e) => {
-            dimpleDepth = parseFloat(e.target.value);
         });
 
         document.getElementById("reflection").addEventListener("input", (e) => {
@@ -160,29 +192,24 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Ripple Angle (Dynamic Rotation)
+            // Ripple Effect
             const elapsedTime = clock.getElapsedTime();
-            const rippleAngle = elapsedTime * 0.5; // Gradually rotate
-
             const position = geometry.attributes.position;
+
             for (let i = 0; i < position.count; i++) {
-                const x = originalVertices[i * 3];
-                const y = originalVertices[i * 3 + 1];
-                const z = originalVertices[i * 3 + 2];
+                const x = position.getX(i);
+                const y = position.getY(i);
+                const z = position.getZ(i);
 
-                // Rotate Coordinates for Ripple Angle
-                const rotatedX = x * Math.cos(rippleAngle) - z * Math.sin(rippleAngle);
-                const rotatedZ = x * Math.sin(rippleAngle) + z * Math.cos(rippleAngle);
+                const distance = Math.sqrt(x * x + z * z);
+                let offset = 0;
 
-                // Ripple Function
-                const distance = Math.sqrt(rotatedX * rotatedX + rotatedZ * rotatedZ);
-                let offset = dimpleDepth - distance * dimpleDepth;
                 if (ripplePattern === "sin") {
-                    offset += Math.sin(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+                    offset = Math.sin(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
                 } else if (ripplePattern === "cos") {
-                    offset += Math.cos(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+                    offset = Math.cos(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
                 } else if (ripplePattern === "tan") {
-                    offset += Math.tan(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+                    offset = Math.tan(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
                 }
 
                 position.setXYZ(i, x, y + offset, z);
@@ -190,9 +217,13 @@
 
             position.needsUpdate = true;
 
-            // Update Controls and Render Scene
-            controls.update();
+            // Render Scene with Motion Blur
+            renderer.setRenderTarget(renderTarget);
             renderer.render(scene, camera);
+            renderer.setRenderTarget(null);
+            renderer.render(composer, camera);
+
+            controls.update();
         }
 
         animate();

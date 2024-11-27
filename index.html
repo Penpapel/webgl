@@ -82,7 +82,6 @@
             for (let y = -gridSize; y <= gridSize; y++) {
                 for (let z = -gridSize; z <= gridSize; z++) {
                     const sphereMaterial = new THREE.MeshStandardMaterial({
-                        color: 0xffffff,
                         metalness: 0.4,
                         roughness: 0.6,
                         envMap: envMap,
@@ -90,11 +89,12 @@
                     });
 
                     if (spheres.length === whiteSphereIndex) {
-                        sphereMaterial.color.set(0xffffff); // White sphere
+                        sphereMaterial.color.set(0xffffff); // Pure white sphere
                     } else {
-                        const hue = (x + gridSize) / (2 * gridSize);
-                        const saturation = (y + gridSize) / (2 * gridSize);
-                        const lightness = (z + gridSize) / (2 * gridSize);
+                        // Vibrant color palette using HSL
+                        const hue = THREE.MathUtils.randFloat(0, 1); // Full range of hues
+                        const saturation = THREE.MathUtils.randFloat(0.7, 1); // High saturation
+                        const lightness = THREE.MathUtils.randFloat(0.3, 0.5); // Moderate lightness to avoid confusion with white
                         sphereMaterial.color.setHSL(hue, saturation, lightness);
                     }
 

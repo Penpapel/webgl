@@ -3,15 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Orbital Spheres - Brightened</title>
+    <title>Find the White Sphere Game</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
         }
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: Arial, sans-serif;
+            font-size: 2em;
+            color: white;
+            text-shadow: 2px 2px 5px black;
+            display: none;
+        }
     </style>
 </head>
 <body>
+    <div id="message">You are a Star!</div>
     <script type="module">
         import * as THREE from './scripts/three.module.js';
         import { OrbitControls } from './scripts/OrbitControls.js';
@@ -32,14 +44,18 @@
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        // Global Lighting
-        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5); // Sky and ground light
+        // Lighting
+        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
         hemisphereLight.position.set(0, 20, 0);
         scene.add(hemisphereLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Bright directional light
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
         directionalLight.position.set(10, 20, 10);
         scene.add(directionalLight);
+
+        // Raycaster and Mouse for Click Detection
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
 
         // Environment Map for Reflections
         const cubeTextureLoader = new THREE.CubeTextureLoader();
@@ -55,38 +71,46 @@
         // Sphere Array
         const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
         const spheres = [];
-        const orbitParams = []; // Store unique orbit parameters for each sphere
+        const orbitParams = [];
         const gridSize = 10;
+
+        // Randomly select one sphere to be white
+        const whiteSphereIndex = Math.floor(Math.random() * Math.pow(gridSize * 2 + 1, 3));
+        let regrouped = false; // Game state
 
         for (let x = -gridSize; x <= gridSize; x++) {
             for (let y = -gridSize; y <= gridSize; y++) {
                 for (let z = -gridSize; z <= gridSize; z++) {
-                    // Randomized gradient color based on position
-                    const hue = (x + gridSize) / (2 * gridSize);
-                    const saturation = (y + gridSize) / (2 * gridSize);
-                    const lightness = (z + gridSize) / (2 * gridSize);
-
                     const sphereMaterial = new THREE.MeshStandardMaterial({
-                        color: new THREE.Color(`hsl(${hue * 360}, ${saturation * 100}%, ${lightness * 50}%)`),
-                        metalness: 0.4, // Reduced metalness for brighter surfaces
-                        roughness: 0.6, // Increased roughness for diffuse reflection
+                        color: 0xffffff,
+                        metalness: 0.4,
+                        roughness: 0.6,
                         envMap: envMap,
-                        envMapIntensity: 1.5, // Boost environment reflection
+                        envMapIntensity: 1.5,
                     });
+
+                    if (spheres.length === whiteSphereIndex) {
+                        sphereMaterial.color.set(0xffffff); // White sphere
+                    } else {
+                        const hue = (x + gridSize) / (2 * gridSize);
+                        const saturation = (y + gridSize) / (2 * gridSize);
+                        const lightness = (z + gridSize) / (2 * gridSize);
+                        sphereMaterial.color.setHSL(hue, saturation, lightness);
+                    }
 
                     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
 
                     // Set unique orbit parameters
-                    const distance = THREE.MathUtils.randFloat(1, 10); // Random distance
-                    const speed = THREE.MathUtils.randFloat(0.25, 0.75); // Adjusted speed range
+                    const distance = THREE.MathUtils.randFloat(1, 10);
+                    const speed = THREE.MathUtils.randFloat(0.25, 0.75);
                     const axis = new THREE.Vector3(
                         THREE.MathUtils.randFloat(-1, 1),
                         THREE.MathUtils.randFloat(-1, 1),
                         THREE.MathUtils.randFloat(-1, 1)
-                    ).normalize(); // Random normalized axis
+                    ).normalize();
 
                     const orbitCenter = new THREE.Vector3(
-                        x * 2.5, // Grid spacing
+                        x * 2.5,
                         y * 2.5,
                         z * 2.5
                     );
@@ -107,20 +131,47 @@
 
             const elapsedTime = clock.getElapsedTime();
 
-            orbitParams.forEach(({ sphere, orbitCenter, distance, speed, axis }) => {
-                const angle = elapsedTime * speed;
+            if (!regrouped) {
+                orbitParams.forEach(({ sphere, orbitCenter, distance, speed, axis }) => {
+                    const angle = elapsedTime * speed;
+                    const position = new THREE.Vector3(0, distance, 0).applyAxisAngle(axis, angle);
+                    sphere.position.copy(position.add(orbitCenter));
+                });
+            } else {
+                // Regroup spheres into a cube
+                let index = 0;
+                for (let x = -gridSize; x <= gridSize; x++) {
+                    for (let y = -gridSize; y <= gridSize; y++) {
+                        for (let z = -gridSize; z <= gridSize; z++) {
+                            spheres[index].position.set(x * 2.5, y * 2.5, z * 2.5);
+                            index++;
+                        }
+                    }
+                }
+            }
 
-                // Calculate new position using 3D rotation around an axis
-                const position = new THREE.Vector3(0, distance, 0).applyAxisAngle(axis, angle);
-                sphere.position.copy(position.add(orbitCenter));
-            });
-
-            // Update controls and render the scene
             controls.update();
             renderer.render(scene, camera);
         }
 
         animate();
+
+        // Click Detection
+        window.addEventListener('click', (event) => {
+            if (regrouped) return;
+
+            // Calculate mouse position in normalized device coordinates
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(spheres);
+
+            if (intersects.length > 0 && intersects[0].object === spheres[whiteSphereIndex]) {
+                regrouped = true;
+                document.getElementById('message').style.display = 'block';
+            }
+        });
 
         // Resize Handling
         window.addEventListener("resize", () => {

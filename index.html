@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Orbital Spheres</title>
+    <title>3D Orbital Spheres with Distributed Lights</title>
     <style>
         body {
             margin: 0;
@@ -32,17 +32,25 @@
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        // Lighting (Increased Brightness)
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); // Stronger ambient light
+        // Global Ambient Light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Moderate ambient light
         scene.add(ambientLight);
 
-        const pointLight1 = new THREE.PointLight(0xffffff, 2.0); // Brighter point lights
-        pointLight1.position.set(50, 50, 50);
-        scene.add(pointLight1);
+        // Add Multiple Point Lights
+        const gridSize = 10; // Same grid size as the spheres
+        const spacing = 5; // Distance between lights
+        const pointLights = [];
 
-        const pointLight2 = new THREE.PointLight(0xffffff, 2.0);
-        pointLight2.position.set(-50, -50, -50);
-        scene.add(pointLight2);
+        for (let x = -gridSize; x <= gridSize; x += 2) {
+            for (let y = -gridSize; y <= gridSize; y += 2) {
+                for (let z = -gridSize; z <= gridSize; z += 2) {
+                    const pointLight = new THREE.PointLight(0xffffff, 1.0, 20); // Adjust brightness and range
+                    pointLight.position.set(x * spacing, y * spacing, z * spacing);
+                    scene.add(pointLight);
+                    pointLights.push(pointLight);
+                }
+            }
+        }
 
         // Environment Map for Reflections Only
         const cubeTextureLoader = new THREE.CubeTextureLoader();
@@ -59,7 +67,6 @@
         const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
         const spheres = [];
         const orbitParams = []; // Store unique orbit parameters for each sphere
-        const gridSize = 10;
 
         for (let x = -gridSize; x <= gridSize; x++) {
             for (let y = -gridSize; y <= gridSize; y++) {

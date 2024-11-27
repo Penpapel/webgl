@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ripple Effect Torus</title>
+    <title>Ripple and Dimple Effect Torus</title>
     <style>
         body {
             margin: 0;
@@ -22,6 +22,10 @@
         input[type="range"] {
             width: 100%;
         }
+        button {
+            margin-top: 10px;
+            padding: 5px 10px;
+        }
     </style>
 </head>
 <body>
@@ -30,8 +34,8 @@
         <input id="speed" type="range" min="1" max="10" step="0.1" value="4">
         <label for="amplitude">Ripple Amplitude</label>
         <input id="amplitude" type="range" min="0.05" max="0.5" step="0.01" value="0.1">
-        <label for="angle">Ripple Angle</label>
-        <input id="angle" type="range" min="0" max="360" step="1" value="0">
+        <label for="dimple">Dimple Depth</label>
+        <input id="dimple" type="range" min="0" max="0.5" step="0.01" value="0.1">
         <label for="reflection">Reflection Intensity</label>
         <input id="reflection" type="range" min="0" max="2" step="0.1" value="1">
         <label for="pattern">Ripple Pattern</label>
@@ -40,6 +44,7 @@
             <option value="cos">Cosine Wave</option>
             <option value="tan">Tangent Wave</option>
         </select>
+        <button id="toggle-controls">Hide Controls</button>
     </div>
 
     <script type="module">
@@ -111,8 +116,8 @@
         const clock = new THREE.Clock();
         let rippleSpeed = 4.0;
         let rippleAmplitude = 0.1;
+        let dimpleDepth = 0.1;
         let ripplePattern = "sin";
-        let rippleAngle = 0;
         let reflectionIntensity = 1.0;
 
         // Store Original Positions of Vertices
@@ -127,8 +132,8 @@
             rippleAmplitude = parseFloat(e.target.value);
         });
 
-        document.getElementById("angle").addEventListener("input", (e) => {
-            rippleAngle = THREE.MathUtils.degToRad(parseFloat(e.target.value));
+        document.getElementById("dimple").addEventListener("input", (e) => {
+            dimpleDepth = parseFloat(e.target.value);
         });
 
         document.getElementById("reflection").addEventListener("input", (e) => {
@@ -140,35 +145,46 @@
             ripplePattern = e.target.value;
         });
 
+        document.getElementById("toggle-controls").addEventListener("click", () => {
+            const ui = document.getElementById("ui");
+            if (ui.style.display === "none") {
+                ui.style.display = "block";
+                document.getElementById("toggle-controls").textContent = "Hide Controls";
+            } else {
+                ui.style.display = "none";
+                document.getElementById("toggle-controls").textContent = "Show Controls";
+            }
+        });
+
         // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
 
-            // Apply Ripple Effect
+            // Ripple Angle (Dynamic Rotation)
             const elapsedTime = clock.getElapsedTime();
-            const position = geometry.attributes.position;
+            const rippleAngle = elapsedTime * 0.5; // Gradually rotate
 
+            const position = geometry.attributes.position;
             for (let i = 0; i < position.count; i++) {
                 const x = originalVertices[i * 3];
                 const y = originalVertices[i * 3 + 1];
                 const z = originalVertices[i * 3 + 2];
 
-                // Apply Ripple Angle Transformation
+                // Rotate Coordinates for Ripple Angle
                 const rotatedX = x * Math.cos(rippleAngle) - z * Math.sin(rippleAngle);
                 const rotatedZ = x * Math.sin(rippleAngle) + z * Math.cos(rippleAngle);
 
                 // Ripple Function
                 const distance = Math.sqrt(rotatedX * rotatedX + rotatedZ * rotatedZ);
-                let offset;
+                let offset = dimpleDepth - distance * dimpleDepth;
                 if (ripplePattern === "sin") {
-                    offset = Math.sin(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+                    offset += Math.sin(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
                 } else if (ripplePattern === "cos") {
-                    offset = Math.cos(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+                    offset += Math.cos(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
                 } else if (ripplePattern === "tan") {
-                    offset = Math.tan(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+                    offset += Math.tan(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
                 }
 
-                // Apply Ripple Offset
                 position.setXYZ(i, x, y + offset, z);
             }
 
@@ -182,7 +198,7 @@
         animate();
 
         // Resize Handling
-        window.addEventListener('resize', () => {
+        window.addEventListener("resize", () => {
             renderer.setSize(window.innerWidth, window.innerHeight);
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();

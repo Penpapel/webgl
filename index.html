@@ -27,6 +27,7 @@
     <script type="module">
         import * as THREE from './scripts/three.module.js';
         import { OrbitControls } from './scripts/OrbitControls.js';
+        import { gsap } from 'https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js';
 
         // Scene and Renderer
         const scene = new THREE.Scene();
@@ -70,7 +71,9 @@
 
         // Sphere Array
         const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+        const clickGeometry = new THREE.SphereGeometry(1, 32, 32); // Larger for better click detection
         const spheres = [];
+        const clickableSpheres = [];
         const orbitParams = [];
         const gridSize = 10;
 
@@ -99,6 +102,7 @@
                     }
 
                     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                    const clickSphere = new THREE.Mesh(clickGeometry, new THREE.MeshBasicMaterial({ visible: false }));
 
                     // Set unique orbit parameters
                     const distance = THREE.MathUtils.randFloat(1, 10);
@@ -115,10 +119,12 @@
                         z * 2.5
                     );
 
-                    orbitParams.push({ sphere, orbitCenter, distance, speed, axis });
+                    orbitParams.push({ sphere, clickSphere, orbitCenter, distance, speed, axis });
 
                     scene.add(sphere);
+                    scene.add(clickSphere);
                     spheres.push(sphere);
+                    clickableSpheres.push(clickSphere);
                 }
             }
         }
@@ -132,18 +138,27 @@
             const elapsedTime = clock.getElapsedTime();
 
             if (!regrouped) {
-                orbitParams.forEach(({ sphere, orbitCenter, distance, speed, axis }) => {
+                orbitParams.forEach(({ sphere, clickSphere, orbitCenter, distance, speed, axis }) => {
                     const angle = elapsedTime * speed;
                     const position = new THREE.Vector3(0, distance, 0).applyAxisAngle(axis, angle);
-                    sphere.position.copy(position.add(orbitCenter));
+                    const currentPosition = position.add(orbitCenter);
+                    sphere.position.copy(currentPosition);
+                    clickSphere.position.copy(currentPosition); // Sync invisible clickable sphere
                 });
             } else {
-                // Regroup spheres into a cube
+                // Regroup spheres into a cube with animation
                 let index = 0;
                 for (let x = -gridSize; x <= gridSize; x++) {
                     for (let y = -gridSize; y <= gridSize; y++) {
                         for (let z = -gridSize; z <= gridSize; z++) {
-                            spheres[index].position.set(x * 2.5, y * 2.5, z * 2.5);
+                            const targetPosition = new THREE.Vector3(x * 2.5, y * 2.5, z * 2.5);
+                            gsap.to(spheres[index].position, {
+                                x: targetPosition.x,
+                                y: targetPosition.y,
+                                z: targetPosition.z,
+                                duration: 1.5,
+                                ease: "power2.out",
+                            });
                             index++;
                         }
                     }
@@ -165,9 +180,9 @@
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(spheres);
+            const intersects = raycaster.intersectObjects(clickableSpheres);
 
-            if (intersects.length > 0 && intersects[0].object === spheres[whiteSphereIndex]) {
+            if (intersects.length > 0 && intersects[0].object === clickableSpheres[whiteSphereIndex]) {
                 regrouped = true;
                 document.getElementById('message').style.display = 'block';
             }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ripple Effect with Reflective Spheres</title>
+    <title>3D Orbital Spheres</title>
     <style>
         body {
             margin: 0;
@@ -43,22 +43,11 @@
         pointLight2.position.set(-20, -20, -20);
         scene.add(pointLight2);
 
-        // Environment Map for Reflective Material
-        const cubeTextureLoader = new THREE.CubeTextureLoader();
-        const envMap = cubeTextureLoader.load([
-            './textures/posx.jpg',
-            './textures/negx.jpg',
-            './textures/posy.jpg',
-            './textures/negy.jpg',
-            './textures/posz.jpg',
-            './textures/negz.jpg',
-        ]);
-
         // Sphere Array
-        const sphereGeometry = new THREE.SphereGeometry(0.2, 16, 16); // Smaller spheres
+        const sphereGeometry = new THREE.SphereGeometry(0.2, 16, 16);
         const spheres = [];
+        const orbitParams = []; // Store unique orbit parameters for each sphere
         const gridSize = 10;
-        const spacing = 1.5;
 
         for (let x = -gridSize; x <= gridSize; x++) {
             for (let y = -gridSize; y <= gridSize; y++) {
@@ -72,36 +61,47 @@
                         color: new THREE.Color(`hsl(${hue * 360}, ${saturation * 100}%, ${lightness * 50}%)`),
                         metalness: 1.0,
                         roughness: 0.2,
-                        envMap: envMap,
-                        envMapIntensity: 1.0,
                     });
 
                     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-                    sphere.position.set(x * spacing, y * spacing, z * spacing);
+
+                    // Set unique orbit parameters
+                    const distance = THREE.MathUtils.randFloat(2 * 0.2, 20 * 0.2); // 2 to 20 times sphere diameter
+                    const speed = THREE.MathUtils.randFloat(0.5, 2.0); // Speed range
+                    const axis = new THREE.Vector3(
+                        THREE.MathUtils.randFloat(-1, 1),
+                        THREE.MathUtils.randFloat(-1, 1),
+                        THREE.MathUtils.randFloat(-1, 1)
+                    ).normalize(); // Random normalized axis
+
+                    const orbitCenter = new THREE.Vector3(
+                        x * 1.5, // Grid spacing
+                        y * 1.5,
+                        z * 1.5
+                    );
+
+                    orbitParams.push({ sphere, orbitCenter, distance, speed, axis });
+
                     scene.add(sphere);
                     spheres.push(sphere);
                 }
             }
         }
 
-        // Animation Variables
-        const clock = new THREE.Clock();
-        const rippleSpeed = 4.0; // Ripple speed
-        const rippleAmplitude = 1.0; // Ripple amplitude
-
         // Animation Loop
+        const clock = new THREE.Clock();
+
         function animate() {
             requestAnimationFrame(animate);
 
             const elapsedTime = clock.getElapsedTime();
 
-            spheres.forEach((sphere) => {
-                const { x, y, z } = sphere.position;
-                const distance = Math.sqrt(x * x + y * y + z * z);
+            orbitParams.forEach(({ sphere, orbitCenter, distance, speed, axis }) => {
+                const angle = elapsedTime * speed;
 
-                // Ripple effect
-                const offset = Math.sin(distance * 2.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
-                sphere.position.z += offset * 0.01;
+                // Calculate new position using 3D rotation around an axis
+                const position = new THREE.Vector3(0, distance, 0).applyAxisAngle(axis, angle);
+                sphere.position.copy(position.add(orbitCenter));
             });
 
             // Update controls and render the scene

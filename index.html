@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Orbital Spheres with Distributed Lights</title>
+    <title>3D Orbital Spheres - Brightened</title>
     <style>
         body {
             margin: 0;
@@ -32,27 +32,16 @@
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        // Global Ambient Light
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Moderate ambient light
-        scene.add(ambientLight);
+        // Global Lighting
+        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5); // Sky and ground light
+        hemisphereLight.position.set(0, 20, 0);
+        scene.add(hemisphereLight);
 
-        // Add Multiple Point Lights
-        const gridSize = 10; // Same grid size as the spheres
-        const spacing = 5; // Distance between lights
-        const pointLights = [];
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Bright directional light
+        directionalLight.position.set(10, 20, 10);
+        scene.add(directionalLight);
 
-        for (let x = -gridSize; x <= gridSize; x += 2) {
-            for (let y = -gridSize; y <= gridSize; y += 2) {
-                for (let z = -gridSize; z <= gridSize; z += 2) {
-                    const pointLight = new THREE.PointLight(0xffffff, 1.0, 20); // Adjust brightness and range
-                    pointLight.position.set(x * spacing, y * spacing, z * spacing);
-                    scene.add(pointLight);
-                    pointLights.push(pointLight);
-                }
-            }
-        }
-
-        // Environment Map for Reflections Only
+        // Environment Map for Reflections
         const cubeTextureLoader = new THREE.CubeTextureLoader();
         const envMap = cubeTextureLoader.load([
             './textures/posx.jpg',
@@ -67,6 +56,7 @@
         const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
         const spheres = [];
         const orbitParams = []; // Store unique orbit parameters for each sphere
+        const gridSize = 10;
 
         for (let x = -gridSize; x <= gridSize; x++) {
             for (let y = -gridSize; y <= gridSize; y++) {
@@ -78,9 +68,10 @@
 
                     const sphereMaterial = new THREE.MeshStandardMaterial({
                         color: new THREE.Color(`hsl(${hue * 360}, ${saturation * 100}%, ${lightness * 50}%)`),
-                        metalness: 0.9,
-                        roughness: 0.4,
+                        metalness: 0.4, // Reduced metalness for brighter surfaces
+                        roughness: 0.6, // Increased roughness for diffuse reflection
                         envMap: envMap,
+                        envMapIntensity: 1.5, // Boost environment reflection
                     });
 
                     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);

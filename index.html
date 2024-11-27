@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Animated Torus</title>
+    <title>Ripple Effect Torus</title>
     <style>
         body {
             margin: 0;
@@ -66,21 +66,35 @@
 
         // Animation Variables
         const clock = new THREE.Clock();
-        const pulseSpeed = 2.0; // Speed of pulsing
-        const colorSpeed = 1.0; // Speed of color change
+        const rippleSpeed = 4.0; // Speed of ripple
+        const rippleAmplitude = 0.1; // Height of ripple
+
+        // Store Original Positions of Vertices
+        const originalVertices = geometry.attributes.position.array.slice();
 
         // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
 
-            // Pulsing Animation
-            const scale = Math.sin(clock.getElapsedTime() * pulseSpeed) * 0.3 + 1.2;
-            torus.scale.set(scale, scale, scale);
+            // Apply Ripple Effect
+            const elapsedTime = clock.getElapsedTime();
+            const position = geometry.attributes.position;
 
-            // Color Change Animation
-            const hue = (Math.sin(clock.getElapsedTime() * colorSpeed) + 1) / 2;
-            material.color.setHSL(hue, 0.8, 0.5);
+            for (let i = 0; i < position.count; i++) {
+                const x = originalVertices[i * 3];
+                const y = originalVertices[i * 3 + 1];
+                const z = originalVertices[i * 3 + 2];
 
+                // Calculate ripple effect based on distance and time
+                const distance = Math.sqrt(x * x + z * z);
+                const offset = Math.sin(distance * 8.0 - elapsedTime * rippleSpeed) * rippleAmplitude;
+
+                position.setXYZ(i, x, y + offset, z);
+            }
+
+            position.needsUpdate = true;
+
+            // Update Controls and Render Scene
             controls.update();
             renderer.render(scene, camera);
         }

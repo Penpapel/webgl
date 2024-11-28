@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Find the White Sphere Game</title>
+    <title>Find the White Sphere - Levels</title>
     <style>
         body {
             margin: 0;
@@ -20,14 +20,31 @@
             text-shadow: 2px 2px 5px black;
             display: none;
         }
+        #level {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: Arial, sans-serif;
+            font-size: 1.5em;
+            color: white;
+        }
     </style>
 </head>
 <body>
-    <div id="message">You are a Star!</div>
+    <div id="message">You're a Star!</div>
+    <div id="level">Level: 1</div>
     <script type="module">
         import * as THREE from './scripts/three.module.js';
         import { OrbitControls } from './scripts/OrbitControls.js';
-        import { gsap } from 'https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js';
+        import gsap from 'https://cdn.jsdelivr.net/npm/gsap@3.12.2/index.js';
+
+        let currentLevel = 1;
+        const maxLevel = 4;
+
+        // DOM Elements
+        const messageDiv = document.getElementById('message');
+        const levelDiv = document.getElementById('level');
 
         // Scene and Renderer
         const scene = new THREE.Scene();
@@ -69,63 +86,85 @@
             './textures/negz.jpg',
         ]);
 
-        // Sphere Array
-        const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-        const clickGeometry = new THREE.SphereGeometry(1, 32, 32); // Larger for better click detection
-        const spheres = [];
-        const clickableSpheres = [];
-        const orbitParams = [];
-        const gridSize = 10;
-
-        // Randomly select one sphere to be white
-        const whiteSphereIndex = Math.floor(Math.random() * Math.pow(gridSize * 2 + 1, 3));
+        let spheres = [];
+        let clickableSpheres = [];
+        let orbitParams = [];
         let regrouped = false; // Game state
+        let whiteSphereIndex;
 
-        for (let x = -gridSize; x <= gridSize; x++) {
-            for (let y = -gridSize; y <= gridSize; y++) {
-                for (let z = -gridSize; z <= gridSize; z++) {
-                    const sphereMaterial = new THREE.MeshStandardMaterial({
-                        metalness: 0.4,
-                        roughness: 0.6,
-                        envMap: envMap,
-                        envMapIntensity: 1.5,
-                    });
+        function setupLevel(level) {
+            // Clear previous objects
+            spheres.forEach((sphere) => scene.remove(sphere));
+            clickableSpheres.forEach((clickSphere) => scene.remove(clickSphere));
+            spheres = [];
+            clickableSpheres = [];
+            orbitParams = [];
 
-                    if (spheres.length === whiteSphereIndex) {
-                        sphereMaterial.color.set(0xffffff); // Pure white sphere
-                    } else {
-                        // Vibrant color palette using HSL
-                        const hue = THREE.MathUtils.randFloat(0, 1); // Full range of hues
-                        const saturation = THREE.MathUtils.randFloat(0.7, 1); // High saturation
-                        const lightness = THREE.MathUtils.randFloat(0.3, 0.5); // Moderate lightness to avoid confusion with white
-                        sphereMaterial.color.setHSL(hue, saturation, lightness);
+            // Update UI
+            levelDiv.textContent = `Level: ${level}`;
+            messageDiv.style.display = 'none';
+
+            // Generate Spheres
+            const gridSize = level + 4; // Increase grid size with levels
+            const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const clickGeometry = new THREE.SphereGeometry(1, 32, 32); // Larger for better click detection
+
+            whiteSphereIndex = Math.floor(Math.random() * Math.pow(gridSize * 2 + 1, 3));
+
+            for (let x = -gridSize; x <= gridSize; x++) {
+                for (let y = -gridSize; y <= gridSize; y++) {
+                    for (let z = -gridSize; z <= gridSize; z++) {
+                        const sphereMaterial = new THREE.MeshStandardMaterial({
+                            metalness: 0.4,
+                            roughness: 0.6,
+                            envMap: envMap,
+                            envMapIntensity: 1.5,
+                        });
+
+                        if (spheres.length === whiteSphereIndex) {
+                            sphereMaterial.color.set(0xffffff); // Pure white sphere
+                        } else {
+                            const hue = THREE.MathUtils.randFloat(0, 1);
+                            const saturation = THREE.MathUtils.randFloat(0.7, 1);
+                            const lightness = THREE.MathUtils.randFloat(0.3, 0.5);
+                            sphereMaterial.color.setHSL(hue, saturation, lightness);
+                        }
+
+                        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                        const clickSphere = new THREE.Mesh(clickGeometry, new THREE.MeshBasicMaterial({ visible: false }));
+
+                        const distance = THREE.MathUtils.randFloat(1, 10);
+                        const speed = THREE.MathUtils.randFloat(0.25, 0.75);
+                        const axis = new THREE.Vector3(
+                            THREE.MathUtils.randFloat(-1, 1),
+                            THREE.MathUtils.randFloat(-1, 1),
+                            THREE.MathUtils.randFloat(-1, 1)
+                        ).normalize();
+
+                        const orbitCenter = new THREE.Vector3(
+                            x * 2.5,
+                            y * 2.5,
+                            z * 2.5
+                        );
+
+                        orbitParams.push({ sphere, clickSphere, orbitCenter, distance, speed, axis });
+
+                        scene.add(sphere);
+                        scene.add(clickSphere);
+                        spheres.push(sphere);
+                        clickableSpheres.push(clickSphere);
                     }
-
-                    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-                    const clickSphere = new THREE.Mesh(clickGeometry, new THREE.MeshBasicMaterial({ visible: false }));
-
-                    // Set unique orbit parameters
-                    const distance = THREE.MathUtils.randFloat(1, 10);
-                    const speed = THREE.MathUtils.randFloat(0.25, 0.75);
-                    const axis = new THREE.Vector3(
-                        THREE.MathUtils.randFloat(-1, 1),
-                        THREE.MathUtils.randFloat(-1, 1),
-                        THREE.MathUtils.randFloat(-1, 1)
-                    ).normalize();
-
-                    const orbitCenter = new THREE.Vector3(
-                        x * 2.5,
-                        y * 2.5,
-                        z * 2.5
-                    );
-
-                    orbitParams.push({ sphere, clickSphere, orbitCenter, distance, speed, axis });
-
-                    scene.add(sphere);
-                    scene.add(clickSphere);
-                    spheres.push(sphere);
-                    clickableSpheres.push(clickSphere);
                 }
+            }
+        }
+
+        function nextLevel() {
+            if (currentLevel < maxLevel) {
+                currentLevel++;
+                setupLevel(currentLevel);
+            } else {
+                messageDiv.textContent = "You've mastered the game!";
+                messageDiv.style.display = 'block';
             }
         }
 
@@ -145,24 +184,6 @@
                     sphere.position.copy(currentPosition);
                     clickSphere.position.copy(currentPosition); // Sync invisible clickable sphere
                 });
-            } else {
-                // Regroup spheres into a cube with animation
-                let index = 0;
-                for (let x = -gridSize; x <= gridSize; x++) {
-                    for (let y = -gridSize; y <= gridSize; y++) {
-                        for (let z = -gridSize; z <= gridSize; z++) {
-                            const targetPosition = new THREE.Vector3(x * 2.5, y * 2.5, z * 2.5);
-                            gsap.to(spheres[index].position, {
-                                x: targetPosition.x,
-                                y: targetPosition.y,
-                                z: targetPosition.z,
-                                duration: 1.5,
-                                ease: "power2.out",
-                            });
-                            index++;
-                        }
-                    }
-                }
             }
 
             controls.update();
@@ -175,7 +196,6 @@
         window.addEventListener('click', (event) => {
             if (regrouped) return;
 
-            // Calculate mouse position in normalized device coordinates
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -184,7 +204,31 @@
 
             if (intersects.length > 0 && intersects[0].object === clickableSpheres[whiteSphereIndex]) {
                 regrouped = true;
-                document.getElementById('message').style.display = 'block';
+                messageDiv.style.display = 'block';
+
+                // Regroup spheres into target shape with animation
+                let index = 0;
+                for (let x = -currentLevel; x <= currentLevel; x++) {
+                    for (let y = -currentLevel; y <= currentLevel; y++) {
+                        for (let z = -currentLevel; z <= currentLevel; z++) {
+                            const targetPosition = new THREE.Vector3(x * 2.5, y * 2.5, z * 2.5);
+                            gsap.to(spheres[index].position, {
+                                x: targetPosition.x,
+                                y: targetPosition.y,
+                                z: targetPosition.z,
+                                duration: 1.5,
+                                ease: "power2.out",
+                            });
+                            index++;
+                        }
+                    }
+                }
+
+                // Wait and move to the next level
+                setTimeout(() => {
+                    regrouped = false;
+                    nextLevel();
+                }, 2000);
             }
         });
 
@@ -194,6 +238,9 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
         });
+
+        // Initialize the first level
+        setupLevel(currentLevel);
     </script>
 </body>
-</html>
+</html>                               

@@ -74,17 +74,18 @@
         // Camera
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 0, 50);
-
+        camera.lookAt(0, 0, 0);
+        
         // OrbitControls for 3D Navigation
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
         // Lighting
-        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
+        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, .8);
         hemisphereLight.position.set(0, 20, 0);
         scene.add(hemisphereLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
         directionalLight.position.set(10, 20, 10);
         scene.add(directionalLight);
 
@@ -133,7 +134,7 @@
                             metalness: 0.4,
                             roughness: 0.6,
                             envMap: envMap,
-                            envMapIntensity: 1.5,
+                            envMapIntensity: .8,
                         });
 
                         if (spheres.length === whiteSphereIndex) {
